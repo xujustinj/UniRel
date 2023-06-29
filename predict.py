@@ -2,11 +2,9 @@ import os
 import numpy as np
 import torch
 
-from transformers import (BertTokenizerFast)
+from transformers import BertTokenizerFast
 import dataprocess.rel2text
-from model.model_transformers import  UniRelModel
-from dataprocess.data_extractor import *
-from dataprocess.data_metric import *
+from model.model_transformers import UniRelModel
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -19,8 +17,7 @@ class UniRel:
         self.max_length = max_length
         self.max_length = max_length
         self._get_pred_str(dataset_name)
-        
-    
+
     def _get_pred_str(self, dataset_name):
         self.pred2text = None
         if dataset_name == "nyt":
@@ -35,7 +32,7 @@ class UniRel:
             for k in self.pred2text:
                 v = self.pred2text[k]
                 if isinstance(v, int):
-                    self.pred2text[k] = f"[unused{cnt}]" 
+                    self.pred2text[k] = f"[unused{cnt}]"
                     cnt += 1
                     continue
                 ids = self.tokenizer(v)
@@ -52,7 +49,7 @@ class UniRel:
             for k in self.pred2text:
                 v = self.pred2text[k]
                 if isinstance(v, int):
-                    self.pred2text[k] = f"[unused{cnt}]" 
+                    self.pred2text[k] = f"[unused{cnt}]"
                     cnt += 1
                     continue
                 ids = self.tokenizer(v)
@@ -79,7 +76,7 @@ class UniRel:
         self.pred_str = self.pred_str[:-1]
         self.pred_inputs = self.tokenizer.encode_plus(self.pred_str,
                                                  add_special_tokens=False)
-    
+
     def _data_process(self, text):
         # text could be a list of sentences or a single sentence
         if isinstance(text, str):
@@ -99,7 +96,7 @@ class UniRel:
             batched_attention_mask.append(attention_mask)
             batched_token_type_ids.append(token_type_ids)
         return batched_input_ids, batched_attention_mask, batched_token_type_ids
-    
+
 
     def _get_e2r(self, e2r_pred):
         """
@@ -113,7 +110,7 @@ class UniRel:
         e_va = np.where(e2r_pred == 1)
         for h, r in zip(e_va[0], e_va[1]):
             h = int(h)
-            r = int(r)            
+            r = int(r)
             if h == 0 or r == 0 or r == token_len+1 or h > token_len:
                 continue
             # Entity-Entity
@@ -126,7 +123,7 @@ class UniRel:
                     e2r[h] = []
                 e2r[h].append(r)
         return e2r, tok_tok
-    
+
     def _get_span_att(self, span_pred):
         token_len = self.max_length-2
         span_va = np.where(span_pred == 1)
@@ -198,13 +195,13 @@ class UniRel:
         with torch.no_grad():
             outputs = self.model(input_ids, attention_mask, token_type_ids)
             results = self._extractor(outputs, input_ids)
-        return results  
+        return results
 
 
 if __name__ == "__main__":
     model_path = "./output/nyt/checkpoint-final"
     unirel = UniRel(model_path, dataset_name="nyt")
-    
+
     print(unirel.predict("In perhaps the most ambitious Mekong cruise attempt, Impulse Tourism, an operator based in Chiang Mai, Thailand, is organizing an expedition starting in November in Jinghong, a small city in the Yunnan province in China."))
     print(unirel.predict("Adisham Hall in Sri Lanka was constructed between 1927 and 1931 at St Benedicts Monastery , Adisham , Haputhale , Sri Lanka in the Tudor and Jacobean style of architecture"))
     print(unirel.predict([
@@ -213,4 +210,3 @@ if __name__ == "__main__":
         "Adisham Hall in Sri Lanka was constructed between 1927 and 1931 at St Benedicts Monastery , Adisham , Haputhale , Sri Lanka in the Tudor and Jacobean style of architecture"
     ]))
     print("end")
-        
