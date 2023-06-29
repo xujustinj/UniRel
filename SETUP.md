@@ -13,7 +13,13 @@ conda activate UniRel
 python -m ipykernel install --user --name=UniRel
 
 # Download checkpoint mentioned in README.md
-gdown --folder https://drive.google.com/drive/folders/1poRbtpm5ddbwUk3mVQ2-4G_o3OPXjYNq --output ./output/nyt/checkpoint-final
+gdown --folder 1poRbtpm5ddbwUk3mVQ2-4G_o3OPXjYNq --output ./output/nyt/checkpoint-final
+
+# Download data mentioned in README.md
+gdown 1-3uBc_VfaCEWO2_FegzSyBXNeFmqhv7x --output data.zip
+unzip data.zip "data4bert/*"
+rm data.zip
+mv data4bert data
 ```
 
 All scripts below assume that `UniRel` is active.
