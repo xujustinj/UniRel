@@ -40,7 +40,6 @@ class UniRelDataset(Dataset):
         self.max_label_len = data_processor.max_label_len
         self.pred2text = data_processor.pred2text
 
-
         self.pred_str = data_processor.pred_str
         self.pred_inputs = tokenizer.encode_plus(self.pred_str,
                                                  add_special_tokens=False)
@@ -63,7 +62,6 @@ class UniRelDataset(Dataset):
         attention_mask[sep_idx] = 0
         token_type_ids = inputs["token_type_ids"] + [1] * num_rels
 
-
         return {
             "input_ids":
             torch.tensor(np.array(input_ids, dtype=np.int64),
@@ -81,7 +79,6 @@ class UniRelDataset(Dataset):
 
     def __len__(self):
         return len(self.texts)
-
 
 
 class UniRelSpanDataset(Dataset):
@@ -123,10 +120,10 @@ class UniRelSpanDataset(Dataset):
         self.max_label_len = data_processor.max_label_len
         self.pred2text = data_processor.pred2text
 
-
         self.pred_str = data_processor.pred_str
         self.pred_inputs = tokenizer.encode_plus(self.pred_str,
                                                  add_special_tokens=False)
+        assert len(self.pred_inputs["input_ids"]) == self.num_rels
 
     def __getitem__(self, idx):
         text = self.texts[idx]
@@ -143,11 +140,9 @@ class UniRelSpanDataset(Dataset):
         sep_idx = inputs["input_ids"].index(self.tokenizer.sep_token_id)
         input_ids = inputs["input_ids"] + self.pred_inputs["input_ids"]
         input_ids[sep_idx] = self.tokenizer.pad_token_id
-
         attention_mask = inputs["attention_mask"] + [1] * num_rels
         attention_mask[sep_idx] = 0
         token_type_ids = inputs["token_type_ids"] + [1] * num_rels
-
 
         return {
             "input_ids":
