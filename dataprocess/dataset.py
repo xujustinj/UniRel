@@ -1,13 +1,15 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from transformers import PreTrainedTokenizerBase
+from dataprocess.data_processor import UniRelDataProcessor
 
 
 class UniRelDataset(Dataset):
     def __init__(self,
-                 samples,
-                 data_processor,
-                 tokenizer,
+                 samples: dict[str, list],
+                 data_processor: UniRelDataProcessor,
+                 tokenizer: PreTrainedTokenizerBase,
                  mode='train',
                  max_length=102,
                  ignore_label=-100,
@@ -83,9 +85,9 @@ class UniRelDataset(Dataset):
 
 class UniRelSpanDataset(Dataset):
     def __init__(self,
-                 samples,
-                 data_processor,
-                 tokenizer,
+                 samples: dict[str, list],
+                 data_processor: UniRelDataProcessor,
+                 tokenizer: PreTrainedTokenizerBase,
                  mode='train',
                  max_length=102,
                  ignore_label=-100,
