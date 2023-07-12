@@ -15,9 +15,12 @@ class UniRel:
             self,
             model_path: str,
             max_length: int = 128,
-            dataset_name: str = "nyt"
+            dataset_name: str = "nyt",
+            device: str = "cuda" if torch.cuda.is_available() else "cpu",
     ) -> None:
-        self.model: UniRelModel = UniRelModel.from_pretrained(model_path)
+        self.device = device
+        self.model: UniRelModel = UniRelModel.from_pretrained(
+            model_path).to(self.device)
         added_token = [f"[unused{i}]" for i in range(1, 17)]
         self.tokenizer: BertTokenizerFast = BertTokenizerFast.from_pretrained(
             "bert-base-cased",
@@ -86,7 +89,7 @@ class UniRel:
         self.pred_inputs = self.tokenizer.encode_plus(self.pred_str,
                                                       add_special_tokens=False)
 
-    def _data_process(self, text: str | list[str]):
+    def _data_process(self, text: str | list[str]) -> tuple[list[list[int]], list[list[int]], list[list[int]]]:
         # text could be a list of sentences or a single sentence
         if isinstance(text, str):
             text = [text]
@@ -113,20 +116,26 @@ class UniRel:
 
     def _get_e2r(
             self,
-            e2r_pred: np.ndarray,
+            e2r_pred: torch.Tensor,
     ) -> tuple[dict[int, list[int]], set[tuple[int, int]]]:
         """
         Extract entity-relation (subject-relation) and entity-entity interactions from given Attention Matrix.
         Only Extract the upper-right triangle, so should input transpose of the original
         Attention Matrix to extract relation-entity (relation-object) interactions.
         """
-        return get_e2r(e2r_pred, token_len=self.max_length-2)
+        return get_e2r(
+            e2r_pred.cpu().numpy(),
+            token_len=self.max_length-2,
+        )
 
     def _get_span_att(
             self,
-            span_pred: np.ndarray,
+            span_pred: torch.Tensor,
     ) -> tuple[dict[int, list[tuple[int, int]]], dict[int, list[tuple[int, int]]]]:
-        return get_span_att(span_pred, token_len=self.max_length-2)
+        return get_span_att(
+            span_pred.cpu().numpy(),
+            token_len=self.max_length-2,
+        )
 
     def _extractor(
             self,
@@ -179,13 +188,16 @@ class UniRel:
     def predict(self, text: str | list[str]) -> list[list[tuple[str, str, str]]]:
         input_ids, attention_mask, token_type_ids = self._data_process(text)
         if isinstance(input_ids, list):
-            input_ids = torch.tensor(input_ids)
-            attention_mask = torch.tensor(attention_mask)
-            token_type_ids = torch.tensor(token_type_ids)
+            input_ids = torch.tensor(input_ids, device=self.device)
+            attention_mask = torch.tensor(attention_mask, device=self.device)
+            token_type_ids = torch.tensor(token_type_ids, device=self.device)
         else:
-            input_ids = torch.tensor(input_ids).unsqueeze(0)
-            attention_mask = torch.tensor(attention_mask).unsqueeze(0)
-            token_type_ids = torch.tensor(token_type_ids).unsqueeze(0)
+            input_ids = torch.tensor(
+                input_ids, device=self.device).unsqueeze(0)
+            attention_mask = torch.tensor(
+                attention_mask, device=self.device).unsqueeze(0)
+            token_type_ids = torch.tensor(
+                token_type_ids, device=self.device).unsqueeze(0)
         self.model.eval()
         with torch.no_grad():
             outputs = self.model(input_ids, attention_mask, token_type_ids)
